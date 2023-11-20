@@ -51,7 +51,7 @@ resize_transform = transforms.Compose([
     transforms.ToPILImage(),  # Convert tensor to PIL Image
     transforms.Resize((224, 224)),  # Resize the image
     transforms.ToTensor(),  # Convert PIL Image back to tensor
-    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+    # transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
 
 ])
 def annotate_frame(frame):
@@ -103,6 +103,7 @@ def annotate_frame(frame):
                     (text_x, text_y), cv2.FONT_HERSHEY_DUPLEX,
                     1.0, (255, 0, 0), 2, cv2.LINE_AA)
         return rescaled_image_tensor
+
 def load_model(checkpoint_path):
     checkpoint = torch.load(checkpoint_path)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -116,12 +117,13 @@ def load_model(checkpoint_path):
 
   
 def pred_symbol(input):
-    res =  model.predict(input)
-    return res
+    input = input.unsqueeze(0)
+    res, value =  model.predict(input)
+    return res, value
     
-
+THRESHOLD = .90
 fps_counter = FpsCounter()
-checkpoint_path = "checkpoints/"
+checkpoint_path = "checkpoints/Simple/Simple"
 checkpoint_name = "best_model.pth"
 # Initialize MediaPipe Hand model
 mp_hands = mp.solutions.hands
@@ -133,8 +135,9 @@ while True:
     ret, frame = cap.read()
     rescaled_image_tensor = annotate_frame(frame)
     if rescaled_image_tensor != None:
-        out = pred_symbol(rescaled_image_tensor)
-        print(class_index[str(out.item())])
+        out, max_out = pred_symbol(rescaled_image_tensor)
+        if max_out > THRESHOLD:
+            print(f"{class_index[str(out.item())]} : {max_out}")
 
     fps = fps_counter.update()  # Update FPS counter and get current FPS
     fps_counter.draw(frame)

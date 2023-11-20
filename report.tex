@@ -1,0 +1,133 @@
+\documentclass{article}
+
+% Language setting
+% Replace `english' with e.g. `spanish' to change the document language
+\usepackage[english]{babel}
+
+% Set page size and margins
+% Replace `letterpaper' with `a4paper' for UK/EU standard size
+\usepackage[letterpaper,top=2cm,bottom=2cm,left=3cm,right=3cm,marginparwidth=1.75cm]{geometry}
+
+% Useful packages
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage[colorlinks=true, allcolors=blue]{hyperref}
+
+\title{ ASL Vision Model }
+\author{ Nicholas Tidwell }
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+This project aims to develop a robust and efficient system for real-time American Sign Language (ASL) recognition through the application of Convolutional Neural Networks (CNNs). The primary objective is to create a model capable of accurately predicting ASL gestures from live video feeds, facilitating seamless communication for individuals with hearing impairments.
+\end{abstract}
+
+\section{Introduction}
+
+American Sign Language (ASL) serves as a vital mode of communication for individuals who are deaf and hard of hearing, allowing them to convey thoughts, emotions, and ideas through visual and gestural expressions. The proposed research aims to address the communication needs of this community by developing a tool capable of real-time ASL recognition from live video feeds. Specifically, the project focuses on the accurate identification of ASL letters and their subsequent transformation into words by spelling them out.
+
+\section{Method}
+To address the challenge of classifying American Sign Language (ASL) gestures, I developed a specialized convolutional neural network (CNN). The design process involved crucial steps to optimize model performance and enhance robustness. Drawing inspiration from ResNet, the CNN architecture included convolutional blocks with residual connections. This choice aimed to effectively capture hierarchical features and mitigate the risk of vanishing gradients during training. Each convolutional block included Rectified Linear Unit (ReLU) activation functions and pooling layers to introduce non-linearity and spatial down-sampling. To address potential overfitting, dropout layers were strategically placed within the model to enhance generalization. The dataset underwent preprocessing with various transformations to scale and normalize the images, creating a standardized input for the CNN. Cross-Entropy Loss was employed as the chosen loss function for multi-class classification tasks, ensuring the model learned to distinguish between different ASL gestures.
+
+\section{Experiments}
+
+\subsection{Dataset}
+I will be utilizing the ASL dataset sourced from Kaggle for my project. The dataset has been divided into test and validation sets using an 80/20 split. During the preprocessing phase, various transformations were applied to the images. These transformations include resizing the images to dimensions of 224 by 224 pixels, converting them to tensors, and introducing random rotations with degrees ranging from 0 to 30.
+
+Additionally, color adjustments were incorporated using the ColorJitter transformation, which involves modifying brightness, contrast, saturation, and hue to enhance the dataset's diversity. To further augment the images, a RandomAdjustSharpness transformation was applied with a sharpness factor of 2.
+
+This diverse set of transformations aims to enrich the dataset and enhance the model's ability to generalize across different ASL gestures. The effectiveness of the model will be assessed through testing on various batch sizes during the training process.
+\subsection{Evaluation metrics}
+The assessment of the model's effectiveness involves a thorough examination using a range of key metrics, such as loss, accuracy, precision, recall, and F1 score. The fundamental loss metric provides insights into how well the model converges during training. Accuracy offers a broad perspective on the overall correctness of the model, while precision and recall delve into the model's ability to make accurate positive predictions and identify all actual positive instances, respectively. The F1 score, as a blended measure of precision and recall, adds nuance to the evaluation, proving especially useful when dealing with imbalanced class distributions. These diverse metrics collectively contribute to a nuanced understanding of the model's performance in classification, steering discussions towards the implications of the results and potential avenues for improvement.
+\subsection{Results}
+Show the results of your method
+
+\subsection{Analysis and discussions}
+
+Provide additional details about results, provide some analysis, some discussion, failure cases, what is working and what is not working.
+
+Some poterntial items for this section,
+- training curves, loss curves, accuracy curves, 
+
+- change in performance when you change model, change parameteres, etc. 
+
+- Some visualizations, images, some sample predictions, etc. 
+
+- confusion matrices, etc..
+
+\section{Conclusion}
+conclude your report...
+
+\section{Contribution}
+Only required if you have a team...
+
+\subsection{Code}
+
+\subsection{Report}
+
+\section{NOT REQUIRED AFTER THIS}
+This is just a tutorial for you, you don't need the section after this in your report, just delete them or comment them... You can have a reference section at last...
+
+\subsection{How to create Sections and Subsections}
+
+Simply use the section and subsection commands, as in this example document! With Overleaf, all the formatting and numbering is handled automatically according to the template you've chosen. If you're using Rich Text mode, you can also create new section and subsections via the buttons in the editor toolbar.
+
+\subsection{How to include Figures}
+
+First you have to upload the image file from your computer using the upload link in the file-tree menu. Then use the includegraphics command to include it in your document. Use the figure environment and the caption command to add a number and a caption to your figure. See the code for Figure \ref{fig:frog} in this section for an example.
+
+Note that your figure will automatically be placed in the most appropriate place for it, given the surrounding text and taking into account other figures or tables that may be close by. You can find out more about adding images to your documents in this help article on \href{https://www.overleaf.com/learn/how-to/Including_images_on_Overleaf}{including images on Overleaf}.
+
+\begin{figure}
+\centering
+\includegraphics[width=0.3\textwidth]{frog.jpg}
+\caption{\label{fig:frog}This frog was uploaded via the file-tree menu.}
+\end{figure}
+
+\subsection{How to add Tables}
+
+Use the table and tabular environments for basic tables --- see Table~\ref{tab:widgets}, for example. For more information, please see this help article on \href{https://www.overleaf.com/learn/latex/tables}{tables}. 
+
+\begin{table}
+\centering
+\begin{tabular}{l|r}
+Item & Quantity \\\hline
+Widgets & 42 \\
+Gadgets & 13
+\end{tabular}
+\caption{\label{tab:widgets}An example table.}
+\end{table}
+
+\subsection{How to add Lists}
+
+You can make lists with automatic numbering \dots
+
+\begin{enumerate}
+\item Like this,
+\item and like this.
+\end{enumerate}
+\dots or bullet points \dots
+\begin{itemize}
+\item Like this,
+\item and like this.
+\end{itemize}
+
+\subsection{How to write Mathematics}
+
+\LaTeX{} is great at typesetting mathematics. Let $X_1, X_2, \ldots, X_n$ be a sequence of independent and identically distributed random variables with $\text{E}[X_i] = \mu$ and $\text{Var}[X_i] = \sigma^2 < \infty$, and let
+\[S_n = \frac{X_1 + X_2 + \cdots + X_n}{n}
+      = \frac{1}{n}\sum_{i}^{n} X_i\]
+denote their mean. Then as $n$ approaches infinity, the random variables $\sqrt{n}(S_n - \mu)$ converge in distribution to a normal $\mathcal{N}(0, \sigma^2)$.
+
+\subsection{How to add Citations and a References List}
+
+You can simply upload a \verb|.bib| file containing your BibTeX entries, created with a tool such as JabRef. You can then cite entries from it, like this: \cite{greenwade93}. Just remember to specify a bibliography style, as well as the filename of the \verb|.bib|. You can find a \href{https://www.overleaf.com/help/97-how-to-include-a-bibliography-using-bibtex}{video tutorial here} to learn more about BibTeX.
+
+If you have an \href{https://www.overleaf.com/user/subscription/plans}{upgraded account}, you can also import your Mendeley or Zotero library directly as a \verb|.bib| file, via the upload menu in the file-tree.
+
+
+\bibliographystyle{alpha}
+\bibliography{sample}
+
+\end{document}
