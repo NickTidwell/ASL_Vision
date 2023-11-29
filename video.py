@@ -1,13 +1,13 @@
 import cv2
 import mediapipe as mp
 import torch
-from mediapipe.framework.formats import landmark_pb2
 from torchvision import transforms
-from models import SimpleCNN
 import json
-    
-import os
+import argparse
+import torch.nn.functional as F
+from train_utils import load_model
 cap = cv2.VideoCapture(0) # Capture Data from videocam
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 class FpsCounter:
     def __init__(self):
@@ -85,7 +85,6 @@ def annotate_frame(frame):
 
         min_y = max(0, min_y)
         min_x = max(0, min_x)
-        bbox_width, bbox_height = max_x - min_x, max_y - min_y
         # Draw the bounding box around the hand
         cv2.rectangle(frame, (min_x, min_y), (max_x, max_y), (0, 255, 0), 2)
         hand_image = frame[min_y:max_y, min_x:max_x]
@@ -104,38 +103,40 @@ def annotate_frame(frame):
                     1.0, (255, 0, 0), 2, cv2.LINE_AA)
         return rescaled_image_tensor
 
-def load_model(checkpoint_path):
-    checkpoint = torch.load(checkpoint_path)
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    NUMCLASS=29
-    model = SimpleCNN(num_classes=NUMCLASS)
-    model.load_state_dict(checkpoint['model_state_dict'])
     with open('idx_to_class.json', 'r') as json_file:
         idx_to_class = json.load(json_file)
     return model, idx_to_class
 
 
   
-def pred_symbol(input):
+def pred_symbol(input, model):
     input = input.unsqueeze(0)
-    res, value =  model.predict(input)
-    return res, value
+    input = input.to(device)
+    out = model(input)
+    return torch.argmax(out), torch.max(F.softmax(out)), F.softmax(out)
     
-THRESHOLD = .90
+THRESHOLD = .0
 fps_counter = FpsCounter()
 checkpoint_path = "checkpoints/Simple/Simple"
 checkpoint_name = "best_model.pth"
+
+parser = argparse.ArgumentParser(description='Trainer for ASLV Model')
+parser.add_argument('--model_type', type=str, default='Simple', help='Name of the model')
+parser.add_argument('--num_classes', type=int, default=29, help='Number of classes')
+parser.add_argument('--checkpoint_name', type=str, default="best_model.pth", help='Model name')
+args = parser.parse_args()
+
 # Initialize MediaPipe Hand model
 mp_hands = mp.solutions.hands
 hands = mp_hands.Hands()
-model, class_index = load_model(f"{checkpoint_path}/{checkpoint_name}")
+model, class_index = load_model(args)
 # cap.set(3, 1280)
 # cap.set(4, 720)
 while True:
     ret, frame = cap.read()
     rescaled_image_tensor = annotate_frame(frame)
     if rescaled_image_tensor != None:
-        out, max_out = pred_symbol(rescaled_image_tensor)
+        out, max_out, _ = pred_symbol(rescaled_image_tensor, model)
         if max_out > THRESHOLD:
             print(f"{class_index[str(out.item())]} : {max_out}")
 

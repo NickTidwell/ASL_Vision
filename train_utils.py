@@ -3,6 +3,13 @@ from torch.utils.data import DataLoader, random_split
 import json
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
+import os
+from models import SimpleCNN, ResNetLight
+import torch
+from torchvision import models
+import torch.nn as nn
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 def save_images_to_pdf(dataloader, pdf_filename):
     """
@@ -74,9 +81,13 @@ def load_data(data_path, batch_size=32, train_ratio=0.8):
     data_augment =  transforms.Compose([
     transforms.Resize((224, 224)),
     transforms.ToTensor(),
-    transforms.RandomRotation(degrees=(0, 30)),
+    transforms.RandomRotation(degrees=(0, 45)),
     transforms.ColorJitter(brightness=0.5, contrast=0.2, saturation=0.2, hue=0.3),
     transforms.RandomAdjustSharpness(sharpness_factor=2),
+    transforms.RandomErasing(p=0.5, scale=(0.02, 0.33), ratio=(0.3, 3.3)),
+    transforms.GaussianBlur(kernel_size=3),
+    transforms.RandomResizedCrop(size=(224, 224), scale=(0.8, 1.0), ratio=(0.75, 1.333))
+
     ])
     # Load data using ImageFolder
     dataset = datasets.ImageFolder(root=data_path, transform=data_augment)
@@ -109,3 +120,40 @@ def dump_labels(dataset):
     idx_to_class = {idx: class_name for class_name, idx in class_to_idx.items()}
     with open('idx_to_class.json', 'w') as json_file:
         json.dump(idx_to_class, json_file)
+
+def create_relative_directory(directory_path):
+    current_directory = os.getcwd()
+    new_directory = os.path.join(current_directory, directory_path)
+    
+    # Check if the directory already exists
+    if not os.path.exists(new_directory):
+        try:
+            # Create the directory if it doesn't exist
+            os.makedirs(new_directory)
+            print(f"Directory '{directory_path}' created successfully.")
+        except OSError as err:
+            print(f"Error: {err}")
+    else:
+        print(f"Directory '{directory_path}' already exists.")
+    
+    return new_directory
+
+def load_model(args):
+    if args.model_type == "Simple":
+        checkpoint_path = "checkpoints/Simple/Simple"
+        model = SimpleCNN(args.num_classes).to(device)
+    if args.model_type == "pretrained":
+        print("Loading Pretrained")
+        checkpoint_path = "checkpoints/pretrained"
+        model = models.resnet18(pretrained=False)
+        model.fc = nn.Linear(model.fc.in_features, args.num_classes)
+
+    if args.model_type == "resnet_light":
+        print("loading resnet")
+        checkpoint_path = "checkpoints/resnet_light"
+        model = ResNetLight(args.num_classes).to(device)
+        # Specify the number of classes in your dataset
+
+    checkpoint = torch.load(f"{checkpoint_path}/{args.checkpoint_name}")
+    model.load_state_dict(checkpoint['model_state_dict'])
+    model.eval()  # Set the model to evaluation mode
