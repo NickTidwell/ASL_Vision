@@ -6,19 +6,25 @@ import json
 import argparse
 import torch.nn.functional as F
 from train_utils import load_model
+from collections import deque
+import os
 cap = cv2.VideoCapture(0) # Capture Data from videocam
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 class FpsCounter:
-    def __init__(self):
-        self.start_time = cv2.getTickCount()
-        self.frames = 0
+    def __init__(self, max_frames=60):
+        self.max_frames = max_frames
+        self.timestamps = deque(maxlen=max_frames)
+        self.frames = 0  
         self.fps = 0
     
     def update(self):
         self.frames += 1
-        elapsed_time = (cv2.getTickCount() - self.start_time) / cv2.getTickFrequency()
-        self.fps = self.frames / elapsed_time
+        self.timestamps.append(cv2.getTickCount())
+
+        if len(self.timestamps) >= 2:
+            elapsed_time = (self.timestamps[-1] - self.timestamps[0]) / cv2.getTickFrequency()
+            self.fps = self.frames / elapsed_time
 
     def draw(self, frame):
         # Draw FPS on the frame
@@ -26,7 +32,7 @@ class FpsCounter:
         cv2.putText(frame, fps_text, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
 
     def reset(self):
-        self.start_time = cv2.getTickCount()
+        self.timestamps.clear()
         self.frames = 0
 
 def baseline_landmarks(frame):
@@ -46,6 +52,7 @@ MARGIN = 10  # pixels
 FONT_SIZE = 1
 FONT_THICKNESS = 1
 HANDEDNESS_TEXT_COLOR = (88, 205, 54) # vibrant green
+THRESHOLD = .90
 
 resize_transform = transforms.Compose([
     transforms.ToPILImage(),  # Convert tensor to PIL Image
@@ -95,13 +102,19 @@ def annotate_frame(frame):
         # Display original and resized images using OpenCV
         cv2.imshow('Original Image', hand_tensor.permute(1, 2, 0).numpy())
         cv2.imshow('Resized Image', rescaled_image_tensor.permute(1, 2, 0).numpy() )
+
+        
+        if rescaled_image_tensor != None:
+            out, max_out, _ = pred_symbol(rescaled_image_tensor, model)
+            if max_out > THRESHOLD:
+                print(f"{class_index[str(out.item())]} : {max_out}")
         # Draw handedness (left or right hand) on the image above the bounding box
         text_x = min_x
         text_y = max(0, min_y - 10)  # Adjust the text position above the bounding box
-        cv2.putText(frame, f"{handedness.classification[0].label[0]}",
+        cv2.putText(frame, f"{class_index[str(out.item())]} : {max_out}",
                     (text_x, text_y), cv2.FONT_HERSHEY_DUPLEX,
                     1.0, (255, 0, 0), 2, cv2.LINE_AA)
-        return rescaled_image_tensor
+        return f"{class_index[str(out.item())]} : {max_out}"
 
     with open('idx_to_class.json', 'r') as json_file:
         idx_to_class = json.load(json_file)
@@ -115,7 +128,6 @@ def pred_symbol(input, model):
     out = model(input)
     return torch.argmax(out), torch.max(F.softmax(out)), F.softmax(out)
     
-THRESHOLD = .0
 fps_counter = FpsCounter()
 checkpoint_path = "checkpoints/Simple/Simple"
 checkpoint_name = "best_model.pth"
@@ -129,23 +141,33 @@ args = parser.parse_args()
 # Initialize MediaPipe Hand model
 mp_hands = mp.solutions.hands
 hands = mp_hands.Hands()
-model, class_index = load_model(args)
-# cap.set(3, 1280)
-# cap.set(4, 720)
+model = load_model(args)
+class_index = None
+with open("idx_to_class.json", 'r') as json_file:
+    # Load the JSON data from the file
+    class_index = json.load(json_file)
+# Create 'images' folder if it doesn't exist
+output_folder = 'images'
+os.makedirs(output_folder, exist_ok=True)
 while True:
     ret, frame = cap.read()
-    rescaled_image_tensor = annotate_frame(frame)
-    if rescaled_image_tensor != None:
-        out, max_out, _ = pred_symbol(rescaled_image_tensor, model)
-        if max_out > THRESHOLD:
-            print(f"{class_index[str(out.item())]} : {max_out}")
 
+    out_text = annotate_frame(frame)
     fps = fps_counter.update()  # Update FPS counter and get current FPS
     fps_counter.draw(frame)
     cv2.imshow('Processed Video', frame)
 
     # Break the loop if the window is closed (user hits the 'X' button)
-    if cv2.waitKey(1) & 0xFF == ord('q') or cv2.getWindowProperty('Processed Video', cv2.WND_PROP_VISIBLE) < 1:
+    key = cv2.waitKey(1) & 0xFF
+    if key == ord('q') or cv2.getWindowProperty('Processed Video', cv2.WND_PROP_VISIBLE) < 1:
         break
+    elif key == ord(' '):  # Check for space key press
+        image_path = os.path.join(output_folder, 'frame_{}.png'.format(out_text.replace(' ', '-').replace(':', '-')
+))
+        try:
+            cv2.imwrite(image_path, frame)
+            print('Image saved to:', image_path)
+        except Exception as e:
+            print('Error saving image:', e)
 cap.release()
 cv2.destroyAllWindows()

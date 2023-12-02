@@ -157,3 +157,4 @@ def load_model(args):
     checkpoint = torch.load(f"{checkpoint_path}/{args.checkpoint_name}")
     model.load_state_dict(checkpoint['model_state_dict'])
     model.eval()  # Set the model to evaluation mode
+    return model.to(device)
